@@ -2,7 +2,7 @@
 "Beyond the Screen: A Comprehensive Data-Driven Analysis of Digital Habits, Productivity, and Mental Health"
 ________________________________________
  Motivation
-People use smartphones in the digital era for reasons beyond screen duration because these devices demonstrate individual behavioral patterns as well as psychological states and work efficiency alongside social preferences. My analysis of my iPhone daily and weekly activity metrics in my usage data demonstrated the possibility of discovering additional beneficial insights beyond basic time usage patterns. My research will examine smartphone usage effects on personal well-being with resulting guidance for better digital practice.
+People use smartphones in the digital era for reasons beyond screen duration because these devices demonstrate individual behavioral patterns as well as psychological states and work efficiency alongside social preferences. My analysis of my and other users iPhone daily and weekly activity metrics in my usage data demonstrated the possibility of discovering additional beneficial insights beyond basic time usage patterns. My research will examine smartphone usage effects on personal well-being with resulting guidance for better digital practice.
 ________________________________________
 Data Sources & Collection Strategy
 Primary Data (Personal iPhone Usage Data):
@@ -13,6 +13,11 @@ Secondary Data Sources (for enrichment):
 •	Public Mental Health Data: Datasets from Kaggle, WHO, CDC (focusing on stress, anxiety, and sleep disorders related to smartphone use).
 •	Productivity Metrics: Publicly available datasets on productivity, attention span, and cognitive performance from academic papers or studies.
 •	Surveys and Online Data: Publicly available surveys (Pew Research, Statista) on smartphone usage habits, mental health outcomes, demographic data (age, occupation, geographical differences).
+
+- https://www.kaggle.com/datasets/waqi786/mental-health-and-technology-usage-dataset?resource=download
+
+- https://statso.io/screen-time-case-study/#:~:text=The%20dataset%20contains%20daily%20screen,record%20includes%20the%20following%20columns
+
 ________________________________________
  Project Scope and Analytical Steps:
 1. Data Collection and Cleaning
