@@ -23,6 +23,11 @@ The developer used this data through PyTrends Python library.
 
 A date-based merge operation establishes connections between datasets for evaluations needing chronological correlation analysis.
 
+https://www.kaggle.com/datasets/matthieugimbert/french-bakery-daily-sales
+https://trends.google.com/trends/explore?date=2021-01-01%202021-06-30&geo=FR&q=comment%20perdre%20du%20poids,r%C3%A9gime&hl=tr
+https://trends.google.com/trends/explore?date=2021-06-01%202021-12-31&geo=FR&q=comment%20perdre%20du%20poids,r%C3%A9gime&hl=tr
+https://trends.google.com/trends/explore?date=2022-06-01%202022-09-30&geo=FR&q=comment%20perdre%20du%20poids,r%C3%A9gime&hl=tr
+https://trends.google.com/trends/explore?date=2022-01-01%202022-06-30&geo=FR&q=comment%20perdre%20du%20poids,r%C3%A9gime&hl=tr
 ______________________________________
  Project Scope and Analytical Steps:
 1. Data Cleaning  
