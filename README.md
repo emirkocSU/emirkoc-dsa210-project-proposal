@@ -94,4 +94,4 @@ Intended Outcomes & Benefits:
 -Scientific investigations evaluate how digital dieting objectives influence actual sweet consumption behaviors of users.  
 -The investigation produces critical information which helps bakeries make production quantity decisions at times of peak resolution popularity.  
 -The provided public search information shows how it improves retail predictions as demonstrated by this research.  
-- A template for similar research in other industries (fitness, health, e-commerce)
+-Provide a template for similar research in other industries (fitness, health, e-commerce)
