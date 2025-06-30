@@ -1,0 +1,96 @@
+{
+  "expo": {
+    "name": "Professional Scanner",
+    "slug": "professional-scanner",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a1a2e"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.professionalscan.app",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses camera for QR code scanning (future feature)",
+        "NSMicrophoneUsageDescription": "This app does not use microphone"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1a1a2e"
+      },
+      "package": "com.professionalscan.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "scanapp"
+            },
+            {
+              "scheme": "https",
+              "host": "professionalscan.app"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "scheme": "scanapp",
+    "plugins": [
+      "expo-secure-store",
+      "expo-linking",
+      "expo-notifications"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "professional-scanner-mvp"
+      },
+      "apiUrl": "http://localhost:8000",
+      "botUsername": "YourBotUsername",
+      "appVersion": "1.0.0",
+      "buildNumber": "1"
+    },
+    "owner": "professional-scanner-team",
+    "privacy": "public",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#4f46e5",
+      "androidMode": "default",
+      "androidCollapsedTitle": "Security Alert"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "url": "https://u.expo.dev/professional-scanner-mvp"
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    }
+  }
+}
