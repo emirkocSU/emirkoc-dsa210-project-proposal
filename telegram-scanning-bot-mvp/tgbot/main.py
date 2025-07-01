@@ -18,6 +18,13 @@ from config import config
 from database import init_database, db_manager
 from middlewares.throttling import ThrottlingMiddleware, CommandThrottlingMiddleware
 from handlers import start, scan, help
+try:
+    from handlers import github
+    GITHUB_AVAILABLE = True
+except ImportError:
+    GITHUB_AVAILABLE = False
+    logging.warning("GitHub handler not available - GitHub features disabled")
+
 from utils.scanner import scanner
 
 logger = logging.getLogger(__name__)
@@ -64,6 +71,11 @@ class ProfessionalScanBot:
             self.dp.include_router(scan.router)
             self.dp.include_router(help.router)
             
+            # Register GitHub handler if available
+            if GITHUB_AVAILABLE:
+                self.dp.include_router(github.router)
+                logger.info("GitHub handler registered")
+            
             # Set bot commands for user convenience
             await self._setup_bot_commands()
             
@@ -84,6 +96,14 @@ class ProfessionalScanBot:
             BotCommand(command="help", description="❓ Help and documentation"),
             BotCommand(command="about", description="ℹ️ About this bot"),
         ]
+        
+        # Add GitHub commands if available
+        if GITHUB_AVAILABLE:
+            commands.extend([
+                BotCommand(command="github", description="🔗 Test GitHub connection"),
+                BotCommand(command="repo", description="📦 Get repository info"),
+                BotCommand(command="search", description="🔍 Search repositories"),
+            ])
         
         try:
             await self.bot.set_my_commands(commands)
@@ -127,6 +147,11 @@ class ProfessionalScanBot:
             # Close scanner HTTP client
             if scanner:
                 await scanner.close()
+            
+            # Close GitHub service if available
+            if GITHUB_AVAILABLE:
+                from utils.github_service import github_service
+                await github_service.close()
             
             # Close bot session
             if self.bot:
@@ -200,10 +225,12 @@ if __name__ == "__main__":
     print(f"🏗️  Built with: aiogram 3.x + Python")
     print(f"🔍 Scanner: Multi-phase threat detection")
     print(f"📱 Integration: React Native (Expo) app")
+    print(f"🔗 GitHub: {'✅ Enabled' if GITHUB_AVAILABLE else '❌ Disabled'}")
     print("=" * 50)
     print(f"🔧 Configuration:")
     print(f"   Bot Token: {'✅ Set' if config.BOT_TOKEN else '❌ Missing'}")
     print(f"   Bot Username: {config.BOT_USERNAME or '❌ Missing'}")
+    print(f"   GitHub Token: {'✅ Set' if config.GITHUB_TOKEN else '❌ Missing'}")
     print(f"   Database: {config.DATABASE_PATH}")
     print(f"   Log Level: {config.LOG_LEVEL}")
     print(f"   Rate Limit: {config.RATE_LIMIT_MESSAGES}/min")
@@ -218,6 +245,10 @@ if __name__ == "__main__":
     if not config.BOT_USERNAME:
         print("⚠️  WARNING: BOT_USERNAME is not set!")
         print("Some features may not work properly without the bot username.")
+    
+    if not config.GITHUB_TOKEN and GITHUB_AVAILABLE:
+        print("⚠️  WARNING: GITHUB_TOKEN is not set!")
+        print("GitHub features will work in unauthenticated mode with limited functionality.")
     
     print("🚀 Starting bot...")
     print()

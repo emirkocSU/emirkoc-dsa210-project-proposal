@@ -35,6 +35,10 @@ class Config:
     MAX_SCAN_TIMEOUT: int = int(os.getenv("MAX_SCAN_TIMEOUT", "30"))  # seconds
     MAX_URL_LENGTH: int = int(os.getenv("MAX_URL_LENGTH", "2048"))
     
+    # GitHub API settings
+    GITHUB_TOKEN: str = os.getenv("GITHUB_TOKEN", "")
+    GITHUB_API_URL: str = os.getenv("GITHUB_API_URL", "https://api.github.com")
+    
     # Logging configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -57,6 +61,10 @@ class Config:
         if not cls.BOT_USERNAME:
             logging.error("BOT_USERNAME is required but not set")
             return False
+        
+        # GitHub token is optional but warn if not set
+        if not cls.GITHUB_TOKEN:
+            logging.warning("GITHUB_TOKEN is not set - GitHub features will be disabled")
         
         # Create database directory if it doesn't exist
         db_path = Path(cls.DATABASE_PATH)

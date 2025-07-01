@@ -50,3 +50,27 @@ python-dateutil==2.8.2
 # File handling and utilities
 pathlib2==2.3.7
 typing-extensions==4.9.0
+
+# GitHub API integration
+PyGithub==2.1.1
+github3.py==4.0.1
+
+# Additional HTTP tools
+requests==2.31.0
+
+# JSON handling
+orjson==3.9.10
+
+# Text processing
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Rate limiting
+slowapi==0.1.9
+
+# URL parsing and validation
+tldextract==5.1.1
+
+# Data processing
+pandas==2.1.4
+numpy==1.25.2
