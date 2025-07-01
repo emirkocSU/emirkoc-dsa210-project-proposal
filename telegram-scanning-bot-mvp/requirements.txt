@@ -27,7 +27,7 @@ httpx==0.26.0
 
 # URL validation and parsing
 validators==0.22.0
-urllib3==2.1.0
+urllib3==2.5.0
 
 # Logging and monitoring
 structlog==23.2.0
