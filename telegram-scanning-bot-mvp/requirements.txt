@@ -14,7 +14,7 @@ cachetools==5.3.2
 
 # Validation and security
 pydantic==2.5.3
-cryptography==41.0.8
+cryptography==44.0.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 
