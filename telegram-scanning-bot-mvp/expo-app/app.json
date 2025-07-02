@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Professional Scanner",
-    "slug": "professional-scanner",
+    "name": "Premium Car Alert",
+    "slug": "premium-car-alert",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -16,11 +16,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.professionalscan.app",
+      "bundleIdentifier": "com.premiumcaralert.app",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "NSCameraUsageDescription": "This app uses camera for QR code scanning (future feature)",
-        "NSMicrophoneUsageDescription": "This app does not use microphone"
+        "NSCameraUsageDescription": "This app uses camera to capture car images for damage analysis",
+        "NSPhotoLibraryUsageDescription": "This app accesses photo library to select car images for damage analysis",
+        "NSLocationWhenInUseUsageDescription": "This app uses location to show nearby car listings",
+        "NSUserNotificationsUsageDescription": "This app sends notifications about new car listings matching your criteria"
       }
     },
     "android": {
@@ -28,66 +30,49 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
-      "package": "com.professionalscan.app",
+      "package": "com.premiumcaralert.app",
       "versionCode": 1,
       "permissions": [
-        "INTERNET",
-        "ACCESS_NETWORK_STATE"
-      ],
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [
-            {
-              "scheme": "scanapp"
-            },
-            {
-              "scheme": "https",
-              "host": "professionalscan.app"
-            }
-          ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
-        }
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ]
     },
     "web": {
-      "favicon": "./assets/favicon.png",
-      "bundler": "metro"
+      "favicon": "./assets/favicon.png"
     },
-    "scheme": "scanapp",
     "plugins": [
-      "expo-secure-store",
-      "expo-linking",
-      "expo-notifications"
+      "expo-camera",
+      "expo-image-picker",
+      "expo-location",
+      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0066ff",
+          "defaultChannel": "car-alerts"
+        }
+      ]
     ],
+    "scheme": "premiumcaralert",
     "extra": {
       "eas": {
-        "projectId": "professional-scanner-mvp"
+        "projectId": "your-eas-project-id"
       },
-      "apiUrl": "http://localhost:8000",
-      "botUsername": "YourBotUsername",
-      "appVersion": "1.0.0",
-      "buildNumber": "1"
-    },
-    "owner": "professional-scanner-team",
-    "privacy": "public",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
-    "notification": {
-      "icon": "./assets/notification-icon.png",
-      "color": "#4f46e5",
-      "androidMode": "default",
-      "androidCollapsedTitle": "Security Alert"
+      "apiUrl": "https://your-domain.com/api",
+      "telegramBotUrl": "https://t.me/PremiumCarAlertBot",
+      "supportEmail": "support@your-domain.com"
     },
     "updates": {
       "fallbackToCacheTimeout": 0,
-      "url": "https://u.expo.dev/professional-scanner-mvp"
+      "url": "https://u.expo.dev/your-eas-project-id"
     },
     "runtimeVersion": {
       "policy": "sdkVersion"
