@@ -17,10 +17,14 @@ from aiogram.enums import ParseMode
 from config import config
 from database import init_database, db_manager
 from middlewares.throttling import ThrottlingMiddleware, CommandThrottlingMiddleware
-from handlers import start, scan, help
-from utils.scanner import scanner
+from handlers import start, scan, help, filters
+from utils.car_scanner import car_scanner, init_car_scanner, cleanup_car_scanner
+from utils.yolo import init_damage_detector
 
 logger = logging.getLogger(__name__)
+
+# Global bot instance for use in other modules
+bot_instance = None
 
 class ProfessionalScanBot:
     """
@@ -48,11 +52,19 @@ class ProfessionalScanBot:
                 )
             )
             
+            # Set global bot instance
+            global bot_instance
+            bot_instance = self.bot
+            
             # Initialize dispatcher
             self.dp = Dispatcher()
             
             # Setup database
             await init_database()
+            
+            # Initialize car scanner and damage detector
+            await init_car_scanner()
+            await init_damage_detector()
             
             # Register middleware (order matters!)
             self.dp.message.middleware(ThrottlingMiddleware())
@@ -63,6 +75,7 @@ class ProfessionalScanBot:
             self.dp.include_router(start.router)
             self.dp.include_router(scan.router)
             self.dp.include_router(help.router)
+            self.dp.include_router(filters.router)
             
             # Set bot commands for user convenience
             await self._setup_bot_commands()
@@ -77,10 +90,9 @@ class ProfessionalScanBot:
         """Setup bot commands menu for users."""
         commands = [
             BotCommand(command="start", description="🏠 Start bot / Link account"),
-            BotCommand(command="scan", description="🔍 Scan URL for threats"),
-            BotCommand(command="quickscan", description="⚡ Quick URL scan"),
-            BotCommand(command="history", description="📊 View scan history"),
-            BotCommand(command="scanstats", description="📈 Scan statistics"),
+            BotCommand(command="filters", description="🔍 Set car search filters"),
+            BotCommand(command="scan", description="🚗 Analyze car listing"),
+            BotCommand(command="alerts", description="📊 View recent alerts"),
             BotCommand(command="help", description="❓ Help and documentation"),
             BotCommand(command="about", description="ℹ️ About this bot"),
         ]
@@ -90,6 +102,25 @@ class ProfessionalScanBot:
             logger.info("Bot commands menu set successfully")
         except Exception as e:
             logger.error(f"Error setting bot commands: {e}")
+    
+    async def _background_scanner(self):
+        """Background task for scanning car listings."""
+        logger.info("Starting background car listing scanner")
+        
+        while self.is_running:
+            try:
+                await car_scanner.check_new_listings()
+                logger.debug("Background scan completed")
+                
+                # Wait for next scan interval
+                await asyncio.sleep(config.SCAN_INTERVAL)
+                
+            except Exception as e:
+                logger.error(f"Error in background scanner: {e}")
+                # Wait a bit before retrying on error
+                await asyncio.sleep(60)
+        
+        logger.info("Background scanner stopped")
     
     async def start_polling(self):
         """Start the bot with long polling."""
@@ -102,6 +133,9 @@ class ProfessionalScanBot:
             # Get bot info
             bot_info = await self.bot.get_me()
             logger.info(f"Starting bot: @{bot_info.username} (ID: {bot_info.id})")
+            
+            # Start background scanning task
+            asyncio.create_task(self._background_scanner())
             
             # Start polling
             logger.info("Bot is now running. Press Ctrl+C to stop.")
@@ -124,9 +158,8 @@ class ProfessionalScanBot:
         self.is_running = False
         
         try:
-            # Close scanner HTTP client
-            if scanner:
-                await scanner.close()
+            # Close car scanner HTTP client
+            await cleanup_car_scanner()
             
             # Close bot session
             if self.bot:

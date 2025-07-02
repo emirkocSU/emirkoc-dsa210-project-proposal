@@ -1,6 +1,6 @@
 """
-Scan command handler with professional URL scanning and damage assessment.
-Implements multi-step scanning workflow with FSM and comprehensive threat analysis.
+Scan command handler for car listing analysis.
+Handles manual car listing URL scanning and damage analysis.
 """
 
 import asyncio
@@ -15,8 +15,9 @@ from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 from database import db_manager
-from utils.validators import CommandValidator, validate_url
-from utils.scanner import perform_scan, format_scan_result
+from utils.validators import validate_url
+from utils.car_scanner import car_scanner
+from filters.custom_filters import user_is_linked, user_is_subscribed, valid_car_url
 from config import config
 
 logger = logging.getLogger(__name__)
@@ -30,10 +31,10 @@ class ScanFlow(StatesGroup):
     scanning = State()
     results = State()
 
-@router.message(Command("scan"))
+@router.message(Command("scan"), user_is_linked, user_is_subscribed)
 async def scan_command(message: Message, state: FSMContext):
     """
-    Handle /scan command with optional URL argument.
+    Handle /scan command for car listing analysis.
     
     Args:
         message: Telegram message object
@@ -44,23 +45,7 @@ async def scan_command(message: Message, state: FSMContext):
         await message.answer("❌ Unable to identify user. Please try again.")
         return
     
-    logger.info(f"Scan command from user {user.id} ({user.username})")
-    
-    # Check if user is linked
-    db_user = await db_manager.get_user_by_telegram_id(user.id)
-    if not db_user:
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔗 Link Account", callback_data="how_to_link")]
-        ])
-        
-        await message.answer(
-            "🔒 <b>Account Linking Required</b>\n\n"
-            "To use the scanning features, you need to link your Telegram account with our mobile app.\n\n"
-            "Please download the app and generate a Telegram link to get started.",
-            parse_mode="HTML",
-            reply_markup=keyboard
-        )
-        return
+    logger.info(f"Car scan command from user {user.id} ({user.username})")
     
     # Extract command arguments
     command_text = message.text or ""
@@ -68,14 +53,14 @@ async def scan_command(message: Message, state: FSMContext):
     
     if args:
         # URL provided directly in command
-        await process_scan_url(message, state, args, db_user)
+        await process_car_listing_url(message, args)
     else:
         # No URL provided, ask for it
         await message.answer(
-            "🔍 <b>URL Scanner</b>\n\n"
-            "Please send me the URL you want to scan for threats and malware.\n\n"
-            "Example: <code>https://example.com</code>\n\n"
-            "<i>I'll analyze the URL and provide a comprehensive security report.</i>",
+            "� <b>Car Listing Scanner</b>\n\n"
+            "Please send me a car listing URL from sahibinden.com to analyze.\n\n"
+            "Example: <code>https://www.sahibinden.com/ilan/vasita-otomobil-...</code>\n\n"
+            "<i>I'll analyze the listing and provide damage assessment using AI.</i>",
             parse_mode="HTML"
         )
         await state.set_state(ScanFlow.awaiting_url)
@@ -83,7 +68,7 @@ async def scan_command(message: Message, state: FSMContext):
 @router.message(ScanFlow.awaiting_url, F.text)
 async def process_url_input(message: Message, state: FSMContext):
     """
-    Process URL input from user in FSM state.
+    Process car listing URL input from user in FSM state.
     
     Args:
         message: Telegram message object
@@ -95,25 +80,17 @@ async def process_url_input(message: Message, state: FSMContext):
         await state.clear()
         return
     
-    # Get user from database
-    db_user = await db_manager.get_user_by_telegram_id(user.id)
-    if not db_user:
-        await message.answer("❌ Account not linked. Please link your account first.")
-        await state.clear()
-        return
-    
     url = message.text.strip() if message.text else ""
-    await process_scan_url(message, state, url, db_user)
+    await process_car_listing_url(message, url)
+    await state.clear()
 
-async def process_scan_url(message: Message, state: FSMContext, url: str, db_user):
+async def process_car_listing_url(message: Message, url: str):
     """
-    Process and validate URL for scanning.
+    Process and validate car listing URL for analysis.
     
     Args:
         message: Telegram message object
-        state: FSM context
-        url: URL to scan
-        db_user: Database user object
+        url: Car listing URL to analyze
     """
     # Validate URL format
     is_valid, error_msg = validate_url(url)
@@ -124,86 +101,158 @@ async def process_scan_url(message: Message, state: FSMContext, url: str, db_use
             f"Please provide a valid URL starting with http:// or https://",
             parse_mode="HTML"
         )
-        
-        # If in FSM, stay in awaiting_url state
-        if await state.get_state() == ScanFlow.awaiting_url:
-            await message.answer(
-                "Please send a valid URL to scan:",
-                parse_mode="HTML"
-            )
         return
     
-    # Start scanning process
-    await initiate_scan(message, state, url, db_user)
+    # Check if URL is from supported domain
+    if config.LISTING_SITE_DOMAIN not in url:
+        await message.answer(
+            f"❌ <b>Unsupported Site</b>\n\n"
+            f"Currently only {config.LISTING_SITE_DOMAIN} listings are supported.\n\n"
+            f"Please provide a valid car listing URL from {config.LISTING_SITE_DOMAIN}.",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Start car listing analysis
+    await analyze_car_listing(message, url)
 
-async def initiate_scan(message: Message, state: FSMContext, url: str, db_user):
+async def analyze_car_listing(message: Message, url: str):
     """
-    Initiate the URL scanning process.
+    Analyze a car listing URL for damage and details.
     
     Args:
         message: Telegram message object
-        state: FSM context
-        url: Validated URL to scan
-        db_user: Database user object
+        url: Validated car listing URL
     """
     try:
-        # Create scan result entry in database
-        scan_result_db = await db_manager.create_scan_result(
-            user_id=db_user.id,
-            url=url,
-            scan_type="url_scan"
-        )
-        
-        if not scan_result_db:
-            await message.answer(
-                "❌ <b>Database Error</b>\n\n"
-                "Unable to create scan record. Please try again.",
-                parse_mode="HTML"
-            )
-            await state.clear()
+        # Get user from database
+        user = await db_manager.get_user_by_telegram_id(message.from_user.id)
+        if not user:
+            await message.answer("❌ Account not found.")
             return
         
-        # Store scan ID in FSM data
-        await state.update_data(scan_id=scan_result_db.id, url=url)
-        await state.set_state(ScanFlow.scanning)
+        # Send analyzing message
+        analyzing_message = await message.answer(
+            f"� <b>Analyzing Car Listing</b>\n\n"
+            f"URL: <code>{url}</code>\n\n"
+            f"🔄 <b>Analysis Steps:</b>\n"
+            f"• Fetching listing details\n"
+            f"• Downloading images\n"
+            f"• AI damage detection\n"
+            f"• Text analysis\n\n"
+            f"<i>This may take up to 30 seconds...</i>",
+            parse_mode="HTML"
+        )
         
-        # Send scanning started message
+        # Perform the analysis
+        result = await car_scanner.scan_specific_listing(url)
+        
+        if result.get("error"):
+            await analyzing_message.edit_text(
+                f"❌ <b>Analysis Failed</b>\n\n"
+                f"Error: {result['error']}\n\n"
+                f"Please check the URL and try again.",
+                parse_mode="HTML"
+            )
+            return
+        
+        # Format and send results
+        await send_car_analysis_result(analyzing_message, result)
+        
+        logger.info(f"Completed car listing analysis for user {user.id}: {url}")
+    
+    except Exception as e:
+        logger.error(f"Error analyzing car listing: {e}")
+        await message.answer(
+            "❌ <b>Analysis Error</b>\n\n"
+            "An unexpected error occurred during analysis.\n"
+            "Please try again or contact support.",
+            parse_mode="HTML"
+        )
+
+async def send_car_analysis_result(message: Message, result: Dict[str, Any]):
+    """
+    Send formatted car analysis results to user.
+    
+    Args:
+        message: Message to edit with results
+        result: Analysis result dictionary
+    """
+    try:
+        damage_analysis = result.get("damage_analysis", {})
+        details = result.get("details", {})
+        
+        # Get damage score and severity
+        damage_score = damage_analysis.get("final_damage_score", 0)
+        severity = damage_analysis.get("final_severity", "unknown")
+        
+        # Severity emoji
+        severity_emoji = {
+            'minimal': '✅',
+            'low': '🟡',
+            'moderate': '🟠',
+            'high': '🔴',
+            'unknown': '❓'
+        }.get(severity, '❓')
+        
+        # Format result message
+        result_text = f"🚗 <b>Car Listing Analysis Complete</b>\n\n"
+        
+        # Damage assessment
+        result_text += f"{severity_emoji} <b>Damage Assessment:</b>\n"
+        result_text += f"Score: {damage_score}/100 ({severity.title()})\n\n"
+        
+        # Visual damage
+        if damage_analysis.get('visual_damage'):
+            damage_types = damage_analysis.get('damage_types', [])
+            result_text += f"🔍 <b>Visual Issues Found:</b>\n"
+            for damage_type in damage_types[:3]:  # Show max 3
+                result_text += f"• {damage_type.replace('_', ' ').title()}\n"
+            result_text += "\n"
+        
+        # Text analysis
+        if damage_analysis.get('text_damage'):
+            keywords = damage_analysis.get('damage_keywords', [])
+            result_text += f"📝 <b>Description Keywords:</b>\n"
+            for keyword in keywords[:3]:  # Show max 3
+                result_text += f"• {keyword}\n"
+            result_text += "\n"
+        
+        if not damage_analysis.get('visual_damage') and not damage_analysis.get('text_damage'):
+            result_text += "✅ <b>No major damage indicators found</b>\n\n"
+        
+        # Analysis info
+        if damage_analysis.get('analysis_complete'):
+            result_text += "🤖 <b>AI Analysis:</b> Complete\n"
+        else:
+            result_text += "⚠️ <b>AI Analysis:</b> Limited\n"
+        
+        result_text += f"📊 <b>Images Processed:</b> {damage_analysis.get('processed_images', 0)}\n\n"
+        
+        result_text += "<i>💡 This analysis helps assess the car's condition, but always inspect in person before purchasing.</i>"
+        
+        # Create keyboard
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Cancel Scan", callback_data=f"cancel_scan_{scan_result_db.id}")]
+            [
+                InlineKeyboardButton(text="🔗 Open Listing", url=result.get("url", "")),
+                InlineKeyboardButton(text="🔍 Analyze Another", callback_data="new_scan")
+            ]
         ])
         
-        scanning_message = await message.answer(
-            f"🔍 <b>Scanning in Progress</b>\n\n"
-            f"URL: <code>{url}</code>\n\n"
-            f"🔄 <b>Analysis Phases:</b>\n"
-            f"• Static URL analysis\n"
-            f"• Domain reputation check\n"
-            f"• HTTP response analysis\n"
-            f"• Content threat detection\n\n"
-            f"<i>This may take up to {config.MAX_SCAN_TIMEOUT} seconds...</i>",
+        await message.edit_text(
+            result_text,
             parse_mode="HTML",
             reply_markup=keyboard
         )
         
-        # Store message ID for updates
-        await state.update_data(scanning_message_id=scanning_message.message_id)
-        
-        # Perform the actual scan (async task)
-        asyncio.create_task(perform_background_scan(
-            scan_result_db.id, url, db_user.id, message.chat.id, scanning_message.message_id
-        ))
-        
-        logger.info(f"Started scan {scan_result_db.id} for user {db_user.id}: {url}")
-    
     except Exception as e:
-        logger.error(f"Error initiating scan: {e}")
-        await message.answer(
-            "❌ <b>Scan Error</b>\n\n"
-            "An unexpected error occurred while starting the scan.\n"
-            "Please try again or contact support.",
+        logger.error(f"Error formatting car analysis result: {e}")
+        await message.edit_text(
+            "✅ <b>Analysis Complete</b>\n\n"
+            "The car listing has been analyzed successfully, but there was an error formatting the results.\n\n"
+            "Please try analyzing another listing.",
             parse_mode="HTML"
         )
-        await state.clear()
 
 async def perform_background_scan(scan_id: int, url: str, user_id: int, chat_id: int, message_id: int):
     """

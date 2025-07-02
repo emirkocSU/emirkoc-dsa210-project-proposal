@@ -46,12 +46,23 @@ class User(Base):
     telegram_id = Column(Integer, unique=True, nullable=True, index=True)
     telegram_username = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
+    
+    # Subscription fields
+    subscription_active = Column(Boolean, default=False)
+    subscription_expires_at = Column(DateTime, nullable=True)
+    subscription_type = Column(String(50), default="basic")
+    
+    # Car search filters (JSON string)
+    search_filters = Column(Text, nullable=True)
+    last_seen_listing_id = Column(String(255), nullable=True)
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     link_tokens = relationship("LinkToken", back_populates="user")
     scan_results = relationship("ScanResult", back_populates="user")
+    car_alerts = relationship("CarAlert", back_populates="user")
 
 class LinkToken(Base):
     """Link token model for account linking between app and Telegram."""
@@ -75,17 +86,34 @@ class ScanResult(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     url = Column(Text, nullable=False)
-    scan_type = Column(String(100), nullable=False, default="url_scan")
+    scan_type = Column(String(100), nullable=False, default="car_listing")
     status = Column(String(50), nullable=False, default="pending")  # pending, completed, failed
     result_data = Column(Text, nullable=True)  # JSON string of results
     damage_score = Column(Integer, nullable=True)  # 0-100 damage score
-    threats_found = Column(Text, nullable=True)  # JSON array of threats
+    damage_types = Column(Text, nullable=True)  # JSON array of detected damages
     scan_duration = Column(Integer, nullable=True)  # seconds
     created_at = Column(DateTime, default=datetime.utcnow)
     completed_at = Column(DateTime, nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="scan_results")
+
+class CarAlert(Base):
+    """Car alert model for storing sent alerts to avoid duplicates."""
+    __tablename__ = "car_alerts"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    listing_id = Column(String(255), nullable=False, index=True)
+    listing_url = Column(Text, nullable=False)
+    listing_title = Column(String(500), nullable=True)
+    listing_price = Column(String(100), nullable=True)
+    damage_score = Column(Integer, nullable=True)
+    damage_summary = Column(Text, nullable=True)
+    sent_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="car_alerts")
 
 class DatabaseManager:
     """Database manager for handling all database operations."""
@@ -292,6 +320,150 @@ class DatabaseManager:
                 .limit(limit)
             )
             return result.scalars().all()
+    
+    # Car listing specific methods
+    async def update_user_filters(self, user_id: int, filters_dict: Dict[str, Any]) -> bool:
+        """Update user's car search filters."""
+        try:
+            import json
+            async with self.async_session() as session:
+                result = await session.execute(
+                    select(User).where(User.id == user_id)
+                )
+                user = result.scalar_one_or_none()
+                
+                if not user:
+                    logger.error(f"User {user_id} not found")
+                    return False
+                
+                user.search_filters = json.dumps(filters_dict)
+                user.updated_at = datetime.utcnow()
+                
+                await session.commit()
+                logger.info(f"Updated filters for user {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating user filters: {e}")
+            return False
+    
+    async def get_user_filters(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Get user's car search filters."""
+        try:
+            import json
+            user = await self.get_user_by_id(user_id)
+            if user and user.search_filters:
+                return json.loads(user.search_filters)
+            return None
+        except Exception as e:
+            logger.error(f"Error getting user filters: {e}")
+            return None
+    
+    async def get_user_by_id(self, user_id: int) -> Optional[User]:
+        """Get user by ID."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(User).where(User.id == user_id)
+            )
+            return result.scalar_one_or_none()
+    
+    async def update_subscription_status(self, user_id: int, active: bool, expires_at: datetime = None) -> bool:
+        """Update user's subscription status."""
+        try:
+            async with self.async_session() as session:
+                result = await session.execute(
+                    select(User).where(User.id == user_id)
+                )
+                user = result.scalar_one_or_none()
+                
+                if not user:
+                    logger.error(f"User {user_id} not found")
+                    return False
+                
+                user.subscription_active = active
+                if expires_at:
+                    user.subscription_expires_at = expires_at
+                user.updated_at = datetime.utcnow()
+                
+                await session.commit()
+                logger.info(f"Updated subscription for user {user_id}: active={active}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating subscription: {e}")
+            return False
+    
+    async def get_active_subscribers(self) -> List[User]:
+        """Get all users with active subscriptions and filters set."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(User).where(
+                    and_(
+                        User.subscription_active == True,
+                        User.search_filters.isnot(None),
+                        User.telegram_id.isnot(None)
+                    )
+                )
+            )
+            return result.scalars().all()
+    
+    async def record_car_alert(self, user_id: int, listing_id: str, listing_url: str, 
+                              listing_title: Optional[str] = None, listing_price: Optional[str] = None,
+                              damage_score: Optional[int] = None, damage_summary: Optional[str] = None) -> bool:
+        """Record that a car alert was sent to avoid duplicates."""
+        try:
+            car_alert = CarAlert(
+                user_id=user_id,
+                listing_id=listing_id,
+                listing_url=listing_url,
+                listing_title=listing_title,
+                listing_price=listing_price,
+                damage_score=damage_score,
+                damage_summary=damage_summary
+            )
+            
+            async with self.async_session() as session:
+                session.add(car_alert)
+                await session.commit()
+                logger.info(f"Recorded car alert for user {user_id}, listing {listing_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error recording car alert: {e}")
+            return False
+    
+    async def was_alert_sent(self, user_id: int, listing_id: str) -> bool:
+        """Check if alert was already sent for this listing."""
+        async with self.async_session() as session:
+            result = await session.execute(
+                select(CarAlert).where(
+                    and_(
+                        CarAlert.user_id == user_id,
+                        CarAlert.listing_id == listing_id
+                    )
+                )
+            )
+            return result.scalar_one_or_none() is not None
+    
+    async def update_last_seen_listing(self, user_id: int, listing_id: str) -> bool:
+        """Update the last seen listing ID for a user."""
+        try:
+            async with self.async_session() as session:
+                result = await session.execute(
+                    select(User).where(User.id == user_id)
+                )
+                user = result.scalar_one_or_none()
+                
+                if not user:
+                    logger.error(f"User {user_id} not found")
+                    return False
+                
+                user.last_seen_listing_id = listing_id
+                user.updated_at = datetime.utcnow()
+                
+                await session.commit()
+                logger.info(f"Updated last seen listing for user {user_id}: {listing_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Error updating last seen listing: {e}")
+            return False
     
     # Utility methods
     def _hash_password(self, password: str) -> str:
