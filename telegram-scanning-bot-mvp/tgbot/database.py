@@ -18,7 +18,7 @@ from sqlalchemy.orm import relationship, selectinload
 from sqlalchemy.future import select
 from sqlalchemy import and_, or_
 
-from config import config
+from .config import config
 
 # Create async engine and session
 engine = create_async_engine(
