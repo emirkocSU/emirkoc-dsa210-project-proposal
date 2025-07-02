@@ -110,24 +110,24 @@ async def start_with_deep_link(message: Message, command: CommandObject):
             # Create welcome message with inline keyboard
             keyboard = InlineKeyboardMarkup(inline_keyboard=[
                 [
-                    InlineKeyboardButton(text="🔍 Start Scanning", callback_data="quick_scan"),
+                    InlineKeyboardButton(text="🔍 Set Filters", callback_data="set_filters"),
                     InlineKeyboardButton(text="📖 Help", callback_data="help")
                 ],
                 [
-                    InlineKeyboardButton(text="📊 Recent Scans", callback_data="recent_scans"),
+                    InlineKeyboardButton(text="📊 My Alerts", callback_data="recent_alerts"),
                     InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")
                 ]
             ])
             
             await message.answer(
                 f"🎉 <b>Account Successfully Linked!</b>\n\n"
-                f"Welcome, <b>{user_name}</b>! Your Telegram account is now connected to your app account.\n\n"
+                f"Welcome, <b>{user_name}</b>! Your Telegram account is now connected to your Car Alert Bot account.\n\n"
                 f"🚀 <b>You can now:</b>\n"
-                f"• Scan URLs for threats and malware\n"
-                f"• View detailed damage scores\n"
-                f"• Access your scan history\n"
-                f"• Get real-time security alerts\n\n"
-                f"<i>Try sending /scan followed by a URL to get started!</i>",
+                f"• Set up car search filters\n"
+                f"• Receive automatic alerts for new listings\n"
+                f"• Get AI-powered damage analysis\n"
+                f"• Access your alert history\n\n"
+                f"<i>Start by setting up your car search filters with /filters!</i>",
                 parse_mode="HTML",
                 reply_markup=keyboard
             )
@@ -173,22 +173,22 @@ async def handle_regular_start(message: Message):
         # User is already linked
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
-                InlineKeyboardButton(text="🔍 Start Scanning", callback_data="quick_scan"),
+                InlineKeyboardButton(text="🔍 Set Filters", callback_data="set_filters"),
                 InlineKeyboardButton(text="📖 Help", callback_data="help")
             ],
             [
-                InlineKeyboardButton(text="📊 Recent Scans", callback_data="recent_scans"),
+                InlineKeyboardButton(text="📊 My Alerts", callback_data="recent_alerts"),
                 InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")
             ]
         ])
         
         await message.answer(
             f"👋 <b>Welcome back, {existing_user.full_name or user.full_name}!</b>\n\n"
-            f"Your Telegram account is linked and ready to use.\n\n"
+            f"Your Car Alert Bot is ready to find your perfect car.\n\n"
             f"🔍 <b>Quick Actions:</b>\n"
-            f"• Send <code>/scan [URL]</code> to analyze a website\n"
-            f"• Use <code>/help</code> for all available commands\n"
-            f"• Check <code>/history</code> for your recent scans\n\n"
+            f"• Use <code>/filters</code> to set up your search criteria\n"
+            f"• Send <code>/scan [URL]</code> to analyze a specific listing\n"
+            f"• Check <code>/alerts</code> for your recent alerts\n\n"
             f"<i>What would you like to do today?</i>",
             parse_mode="HTML",
             reply_markup=keyboard
@@ -207,33 +207,38 @@ async def handle_regular_start(message: Message):
         
         await message.answer(
             f"👋 <b>Hello, {user.full_name}!</b>\n\n"
-            f"Welcome to the Professional URL Scanner Bot! 🛡️\n\n"
+            f"Welcome to the Premium Car Alert Bot! �\n\n"
             f"🔗 <b>Account Linking Required</b>\n"
             f"To use this bot, you need to link your Telegram account with our mobile app.\n\n"
             f"📱 <b>How to get started:</b>\n"
             f"1. Download our mobile app\n"
-            f"2. Create an account or log in\n"
+            f"2. Create an account and subscribe\n"
             f"3. Tap 'Connect to Telegram'\n"
             f"4. You'll be redirected here automatically\n\n"
-            f"🛡️ <b>What you'll get:</b>\n"
-            f"• Advanced URL threat detection\n"
-            f"• Real-time damage scoring (0-100)\n"
-            f"• Malware and phishing protection\n"
-            f"• Detailed security reports\n\n"
-            f"<i>Secure your browsing experience today!</i>",
+            f"� <b>What you'll get:</b>\n"
+            f"• Automatic car listing alerts\n"
+            f"• AI-powered damage detection\n"
+            f"• Real-time price notifications\n"
+            f"• Smart filtering system\n\n"
+            f"<i>Find your perfect car today!</i>",
             parse_mode="HTML",
             reply_markup=keyboard
         )
 
-@router.callback_query(F.data == "quick_scan")
-async def quick_scan_callback(callback_query):
-    """Handle quick scan button press."""
+@router.callback_query(F.data == "set_filters")
+async def set_filters_callback(callback_query):
+    """Handle set filters button press."""
     await callback_query.answer()
     await callback_query.message.answer(
-        "🔍 <b>Quick Scan</b>\n\n"
-        "Send me a URL to scan for threats and malware.\n\n"
-        "Example: <code>/scan https://example.com</code>\n\n"
-        "I'll analyze the URL and provide a detailed security report with damage scoring.",
+        "🔍 <b>Set Car Search Filters</b>\n\n"
+        "Use the <code>/filters</code> command to set up your car search criteria.\n\n"
+        "You can filter by:\n"
+        "• Make and Model\n"
+        "• Year range\n"
+        "• Price range\n"
+        "• Location\n"
+        "• And more!\n\n"
+        "Once set, you'll receive automatic alerts for matching cars.",
         parse_mode="HTML"
     )
 
@@ -283,9 +288,9 @@ async def about_bot_callback(callback_query):
         parse_mode="HTML"
     )
 
-@router.callback_query(F.data == "recent_scans")
-async def recent_scans_callback(callback_query):
-    """Handle recent scans button press."""
+@router.callback_query(F.data == "recent_alerts")
+async def recent_alerts_callback(callback_query):
+    """Handle recent alerts button press."""
     user = callback_query.from_user
     if not user:
         await callback_query.answer("Unable to identify user", show_alert=True)
@@ -298,55 +303,71 @@ async def recent_scans_callback(callback_query):
     if not db_user:
         await callback_query.message.answer(
             "❌ <b>Account Not Linked</b>\n\n"
-            "Please link your account first to view scan history.",
+            "Please link your account first to view alert history.",
             parse_mode="HTML"
         )
         return
     
-    # Get recent scan results
-    recent_scans = await db_manager.get_user_scan_results(db_user.id, limit=5)
-    
-    if not recent_scans:
+    # Get recent car alerts
+    try:
+        from database import CarAlert
+        from sqlalchemy import select
+        
+        async with db_manager.async_session() as session:
+            result = await session.execute(
+                select(CarAlert)
+                .where(CarAlert.user_id == db_user.id)
+                .order_by(CarAlert.sent_at.desc())
+                .limit(5)
+            )
+            recent_alerts = result.scalars().all()
+        
+        if not recent_alerts:
+            await callback_query.message.answer(
+                "📊 <b>Recent Alerts</b>\n\n"
+                "No car alerts found yet.\n\n"
+                "Set up your filters with /filters to start receiving alerts!",
+                parse_mode="HTML"
+            )
+            return
+        
+        message = "📊 <b>Your Recent Car Alerts</b>\n\n"
+        
+        for i, alert in enumerate(recent_alerts, 1):
+            # Format timestamp
+            time_str = alert.sent_at.strftime("%m/%d %H:%M")
+            
+            # Get damage emoji
+            damage_score = alert.damage_score or 0
+            if damage_score < 20:
+                emoji = "✅"
+            elif damage_score < 40:
+                emoji = "🟡"
+            elif damage_score < 70:
+                emoji = "🟠"
+            else:
+                emoji = "🔴"
+            
+            # Truncate title if too long
+            title_display = alert.listing_title or "Unknown Car"
+            if len(title_display) > 40:
+                title_display = title_display[:37] + "..."
+            
+            message += f"{i}. {emoji} <b>{title_display}</b>\n"
+            message += f"   Price: {alert.listing_price or 'N/A'} | Damage: {damage_score}/100\n"
+            message += f"   {time_str}\n\n"
+        
+        message += "<i>Use /filters to update your search criteria</i>"
+        
+        await callback_query.message.answer(message, parse_mode="HTML")
+        
+    except Exception as e:
+        logger.error(f"Error fetching recent alerts: {e}")
         await callback_query.message.answer(
-            "📊 <b>Recent Scans</b>\n\n"
-            "No scans found yet.\n\n"
-            "Use /scan [URL] to perform your first security scan!",
+            "❌ <b>Error</b>\n\n"
+            "Unable to fetch recent alerts. Please try again.",
             parse_mode="HTML"
         )
-        return
-    
-    message = "📊 <b>Your Recent Scans</b>\n\n"
-    
-    for i, scan in enumerate(recent_scans, 1):
-        # Format timestamp
-        time_str = scan.created_at.strftime("%m/%d %H:%M")
-        
-        # Get risk emoji
-        risk_emojis = {"safe": "✅", "low": "⚠️", "medium": "🟡", "high": "🔴", "critical": "💀"}
-        
-        # Parse result data to get risk level
-        risk_level = "unknown"
-        if scan.result_data:
-            try:
-                import json
-                result_data = json.loads(scan.result_data)
-                risk_level = result_data.get("overall_risk", "unknown")
-            except:
-                pass
-        
-        emoji = risk_emojis.get(risk_level, "❓")
-        
-        # Truncate URL if too long
-        url_display = scan.url
-        if len(url_display) > 40:
-            url_display = url_display[:37] + "..."
-        
-        message += f"{i}. {emoji} <code>{url_display}</code>\n"
-        message += f"   Score: {scan.damage_score or 0}/100 | {time_str}\n\n"
-    
-    message += "<i>Use /scan [URL] to perform a new scan</i>"
-    
-    await callback_query.message.answer(message, parse_mode="HTML")
 
 @router.callback_query(F.data == "settings")
 async def settings_callback(callback_query):
