@@ -61,7 +61,7 @@ torchvision==0.16.2
 # Web scraping and HTML parsing
 beautifulsoup4==4.12.2
 lxml==4.9.4
-requests==2.31.0
+requests==2.32.4
 
 # Image processing
 numpy==1.24.4
