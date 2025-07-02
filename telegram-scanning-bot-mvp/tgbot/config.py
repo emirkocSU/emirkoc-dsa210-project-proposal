@@ -35,6 +35,19 @@ class Config:
     MAX_SCAN_TIMEOUT: int = int(os.getenv("MAX_SCAN_TIMEOUT", "30"))  # seconds
     MAX_URL_LENGTH: int = int(os.getenv("MAX_URL_LENGTH", "2048"))
     
+    # Car listing specific settings
+    SCAN_INTERVAL: int = int(os.getenv("SCAN_INTERVAL", "300"))  # 5 minutes
+    MAX_LISTINGS_PER_SCAN: int = int(os.getenv("MAX_LISTINGS_PER_SCAN", "50"))
+    
+    # YOLOv8 settings
+    YOLO_WEIGHTS_PATH: str = os.getenv("YOLO_WEIGHTS_PATH", "models/car_damage_yolov8.pt")
+    YOLO_CONFIDENCE_THRESHOLD: float = float(os.getenv("YOLO_CONFIDENCE_THRESHOLD", "0.25"))
+    YOLO_MAX_IMAGES: int = int(os.getenv("YOLO_MAX_IMAGES", "3"))
+    
+    # Car listing site settings
+    BASE_LISTING_URL: str = os.getenv("BASE_LISTING_URL", "https://www.sahibinden.com/otomobil")
+    LISTING_SITE_DOMAIN: str = os.getenv("LISTING_SITE_DOMAIN", "sahibinden.com")
+    
     # Logging configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT: str = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
