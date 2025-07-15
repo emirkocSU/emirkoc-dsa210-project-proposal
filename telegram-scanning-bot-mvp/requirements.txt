@@ -1,6 +1,6 @@
 # Core aiogram framework and dependencies
 aiogram==3.4.1
-aiohttp==3.9.1
+aiohttp==3.12.14
 aiofiles==23.2.0
 
 # Database and ORM
